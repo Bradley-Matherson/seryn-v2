@@ -1,0 +1,63 @@
+# 📁 core/seryn_voice_router.rb
+
+require_relative "seryn_context_stack"
+require_relative "response_engine"
+
+module SerynVoiceRouter
+  class << self
+    def deliver(message:, mode: :default, format: :auto)
+      format = resolve_format(format)
+
+      puts "[VoiceRouter] Delivering in mode: #{mode}, format: #{format}"
+      case format
+      when :text
+        ResponseEngine.deliver(message: message, mode: mode)
+      when :verbal
+        speak(message)
+      when :journaling
+        journaling_mode(message)
+      when :stepwise
+        step_through(message)
+      else
+        fallback(message)
+      end
+    end
+
+    private
+
+    def resolve_format(format)
+      return format unless format == :auto
+
+      context = SerynContextStack.snapshot
+      if context[:identity_mode] == :therapeutic
+        :journaling
+      elsif context[:current_energy] == :low
+        :stepwise
+      else
+        :text
+      end
+    end
+
+    def speak(message)
+      puts "[VoiceRouter] (TTS) 🎤 #{message}"
+      # Placeholder for TTS layer (e.g. ElevenLabs, Festival, MacOS `say`)
+    end
+
+    def journaling_mode(message)
+      puts "[VoiceRouter] (Journaling Mode) 📝 Prompt: #{message}"
+      # Could log to file or prompt journaling entry UI
+    end
+
+    def step_through(message)
+      puts "[VoiceRouter] (Stepwise Mode)"
+      message.split('. ').each_with_index do |step, i|
+        puts "Step #{i + 1}: #{step.strip}"
+        sleep(1)
+      end
+    end
+
+    def fallback(message)
+      puts "[VoiceRouter] (Fallback Format) #{message}"
+    end
+  end
+end
